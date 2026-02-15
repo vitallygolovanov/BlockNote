@@ -33,6 +33,7 @@ export type SideMenuState<
 };
 
 const DISTANCE_TO_CONSIDER_EDITOR_BOUNDS = 250;
+const EMBEDDED_EDITOR_SELECTOR = "[data-embedded-editor]";
 
 function getBlockFromCoords(
   view: EditorView,
@@ -194,6 +195,49 @@ export class SideMenuView<
     this.emitUpdate(this.state);
   };
 
+  private isBlackboardEmbedEditor = () => {
+    return !!(this.pmView.dom as HTMLElement | null)?.closest?.(
+      EMBEDDED_EDITOR_SELECTOR,
+    );
+  };
+
+  private getDistanceThreshold = () => {
+    return this.isBlackboardEmbedEditor() ? 0 : DISTANCE_TO_CONSIDER_EDITOR_BOUNDS;
+  };
+
+  private getEditorBounds = (editorEl: Element | null) => {
+    if (!editorEl) {
+      return null;
+    }
+
+    const embeddedContainer =
+      editorEl.closest?.(EMBEDDED_EDITOR_SELECTOR) ?? null;
+    if (embeddedContainer) {
+      return embeddedContainer.getBoundingClientRect();
+    }
+
+    const blockGroup = editorEl.querySelector?.(".bn-block-group") as
+      | HTMLElement
+      | null;
+
+    return (blockGroup ?? (editorEl as HTMLElement)).getBoundingClientRect();
+  };
+
+  private isPointInsideEditorBounds = (clientX: number, clientY: number) => {
+    const bounds = this.getEditorBounds(this.pmView.dom as HTMLElement | null);
+
+    if (!bounds) {
+      return false;
+    }
+
+    return (
+      clientX >= bounds.left &&
+      clientX <= bounds.right &&
+      clientY >= bounds.top &&
+      clientY <= bounds.bottom
+    );
+  };
+
   updateStateFromMousePos = () => {
     if (this.menuFrozen || !this.mousePos) {
       return;
@@ -206,7 +250,7 @@ export class SideMenuView<
 
     if (
       closestEditor?.element !== this.pmView.dom ||
-      closestEditor.distance > DISTANCE_TO_CONSIDER_EDITOR_BOUNDS
+      closestEditor.distance > this.getDistanceThreshold()
     ) {
       if (this.state?.show) {
         this.state.show = false;
@@ -328,9 +372,10 @@ export class SideMenuView<
     let minDistance = Number.MAX_VALUE;
 
     editors.forEach((editor) => {
-      const rect = editor
-        .querySelector(".bn-block-group")!
-        .getBoundingClientRect();
+      const rect = this.getEditorBounds(editor);
+      if (!rect) {
+        return;
+      }
 
       const distanceX =
         coords.clientX < rect.left
@@ -407,6 +452,11 @@ export class SideMenuView<
       dragEventContext.isDropPoint &&
       !dragEventContext.isDropWithinEditorBounds
     ) {
+      if (this.isBlackboardEmbedEditor()) {
+        this.closeDropCursor();
+        return;
+      }
+
       // we are the drop point, but the drag over event is not within the bounds of this editor instance
       // so, we need to dispatch an event that is in the bounds of this editor instance
       this.dispatchSyntheticEvent(event);
@@ -463,10 +513,7 @@ export class SideMenuView<
     const closestEditor = this.findClosestEditorElement(event);
 
     // We arbitrarily decide how far is "too far" from the closest editor to be considered a drop point
-    if (
-      !closestEditor ||
-      closestEditor.distance > DISTANCE_TO_CONSIDER_EDITOR_BOUNDS
-    ) {
+    if (!closestEditor || closestEditor.distance > this.getDistanceThreshold()) {
       // we are too far from the closest editor, or no editor was found
       return undefined;
     }
@@ -474,8 +521,11 @@ export class SideMenuView<
     // We check if the closest editor is the same as the current editor instance (which is the drop point)
     const isDropPoint = closestEditor.element === this.pmView.dom;
     // We check if the current editor instance is the same as the editor instance that the drag event is happening within
-    const isDropWithinEditorBounds =
-      isDropPoint && closestEditor.distance === 0;
+    const isDropWithinEditorBounds = isDropPoint
+      ? this.isBlackboardEmbedEditor()
+        ? this.isPointInsideEditorBounds(event.clientX, event.clientY)
+        : closestEditor.distance === 0
+      : false;
 
     // We never want to handle drop events that are not related to us
     if (!isDropPoint && !isDragOrigin) {
@@ -530,6 +580,11 @@ export class SideMenuView<
     const { isDropPoint, isDropWithinEditorBounds, isDragOrigin } = context;
 
     if (!isDropWithinEditorBounds && isDropPoint) {
+      if (this.isBlackboardEmbedEditor()) {
+        this.closeDropCursor();
+        return;
+      }
+
       // Any time that the drop event is outside of the editor bounds (but still close to an editor instance)
       // We dispatch a synthetic event that is in the bounds of the editor instance, to have the correct drop point
       this.dispatchSyntheticEvent(event);
@@ -642,9 +697,9 @@ export class SideMenuView<
 
   private dispatchSyntheticEvent(event: DragEvent) {
     const evt = new Event(event.type as "dragover", event) as any;
-    const dropPointBoundingBox = (
-      this.pmView.dom.firstChild as HTMLElement
-    ).getBoundingClientRect();
+    const dropPointBoundingBox =
+      this.getEditorBounds(this.pmView.dom as HTMLElement | null) ??
+      (this.pmView.dom as HTMLElement).getBoundingClientRect();
     evt.clientX = event.clientX;
     evt.clientY = event.clientY;
 

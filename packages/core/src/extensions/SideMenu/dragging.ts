@@ -4,6 +4,7 @@ import { EditorView } from "prosemirror-view";
 
 import { createExternalHTMLExporter } from "../../api/exporters/html/externalHTMLExporter.js";
 import { cleanHTMLToMarkdown } from "../../api/exporters/markdown/markdownExporter.js";
+import { markdownToPlainText } from "../../api/exporters/markdown/markdownExporter.js";
 import { fragmentToBlocks } from "../../api/nodeConversions/fragmentToBlocks.js";
 import { getNodeById } from "../../api/nodeUtil.js";
 import { Block } from "../../blocks/defaultBlocks.js";
@@ -204,7 +205,7 @@ export function dragStart<
     const blocks = fragmentToBlocks(selectedSlice.content);
     const externalHTML = externalHTMLExporter.exportBlocks(blocks, {});
 
-    const plainText = cleanHTMLToMarkdown(externalHTML);
+    const plainText = markdownToPlainText(cleanHTMLToMarkdown(externalHTML));
 
     e.dataTransfer.clearData();
     e.dataTransfer.setData("blocknote/html", clipboardHTML);

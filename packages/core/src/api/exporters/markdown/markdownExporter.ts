@@ -34,6 +34,23 @@ export function cleanHTMLToMarkdown(cleanHTMLString: string) {
   return markdownString.value as string;
 }
 
+export function markdownToPlainText(markdown: string): string {
+  const lines = (markdown || "")
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+
+      if (trimmed === "\\") {
+        return "";
+      }
+
+      return line.replace(/\s*\\\s*$/, "");
+    });
+
+  return lines.join("\n").trimEnd();
+}
+
 export function blocksToMarkdown<
   BSchema extends BlockSchema,
   I extends InlineContentSchema,

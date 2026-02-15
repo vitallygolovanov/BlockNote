@@ -12,6 +12,7 @@ import {
 } from "../../../schema/index.js";
 import { createExternalHTMLExporter } from "../../exporters/html/externalHTMLExporter.js";
 import { cleanHTMLToMarkdown } from "../../exporters/markdown/markdownExporter.js";
+import { markdownToPlainText } from "../../exporters/markdown/markdownExporter.js";
 import { fragmentToBlocks } from "../../nodeConversions/fragmentToBlocks.js";
 import {
   contentNodeToInlineContent,
@@ -141,8 +142,9 @@ export function selectedFragmentToHTML<
   );
 
   const markdown = cleanHTMLToMarkdown(externalHTML);
+  const plainText = markdownToPlainText(markdown);
 
-  return { clipboardHTML, externalHTML, markdown };
+  return { clipboardHTML, externalHTML, markdown: plainText };
 }
 
 const checkIfSelectionInNonEditableBlock = () => {
