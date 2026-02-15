@@ -12,6 +12,7 @@ import {
 } from "../../../schema/index.js";
 import { createExternalHTMLExporter } from "../../exporters/html/externalHTMLExporter.js";
 import { cleanHTMLToMarkdown } from "../../exporters/markdown/markdownExporter.js";
+import { markdownToPlainText } from "../../exporters/markdown/markdownExporter.js";
 import { fragmentToBlocks } from "../../nodeConversions/fragmentToBlocks.js";
 import {
   contentNodeToInlineContent,
@@ -152,8 +153,15 @@ export function selectedFragmentToHTML<
   const markdown = isPurelyInsideCodeBlock
     ? view.state.doc.textBetween($from.pos, $to.pos)
     : cleanHTMLToMarkdown(externalHTML);
+  // Fork delta (5143136c): strip markdown hard-break artifacts ("\") from the
+  // text/plain payload so BlockNote -> Excalidraw/external pastes don't leak
+  // trailing slashes. Skip sanitizing raw code-block text, which may legitimately
+  // contain trailing backslashes.
+  const plainText = isPurelyInsideCodeBlock
+    ? markdown
+    : markdownToPlainText(markdown);
 
-  return { clipboardHTML, externalHTML, markdown };
+  return { clipboardHTML, externalHTML, markdown: plainText };
 }
 
 const checkIfSelectionInNonEditableBlock = (view: EditorView) => {
