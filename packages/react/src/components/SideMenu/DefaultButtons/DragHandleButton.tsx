@@ -43,6 +43,8 @@ export const DragHandleButton = (
       <Components.Generic.Menu.Trigger>
         <Components.SideMenu.Button
           label={dict.side_menu.drag_handle_label}
+          data-testid="blocknote-side-menu-drag-handle"
+          data-blocknote-side-menu-drag-handle="true"
           draggable={true}
           onDragStart={(e) => sideMenu.blockDragStart(e, block)}
           // eslint-disable-next-line @typescript-eslint/unbound-method -- blockDragEnd is a plain object method, not a class method
