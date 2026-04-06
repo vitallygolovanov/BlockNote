@@ -43,6 +43,8 @@ export const DragHandleButton = (
       <Components.Generic.Menu.Trigger>
         <Components.SideMenu.Button
           label={dict.side_menu.drag_handle_label}
+          data-testid="blocknote-side-menu-drag-handle"
+          data-blocknote-side-menu-drag-handle="true"
           draggable={true}
           onDragStart={(e) => sideMenu.blockDragStart(e, block)}
           onDragEnd={sideMenu.blockDragEnd}
