@@ -17,3 +17,14 @@ export function getDraggableBlockFromElement(
   }
   return { node: element as HTMLElement, id: element.getAttribute("data-id")! };
 }
+
+export function handleCustomDragHandleCase(element: Element): { node: HTMLElement; id: string } | undefined {
+  const isDragHandle = element.getAttribute?.("data-card-proxy-drag-handle") === "true";
+  const id = element.getAttribute?.("data-proxy-block-id");
+  if (!isDragHandle || !id) {
+    return undefined;
+  }
+
+  console.log(`CUSTOM DH TEST: HIT CUSTOM DRAG HANDLE CASE. id: ${id} Element:`, element);
+  return { node: element as HTMLElement, id, _isCustomDragHandle: true } as unknown as { node: HTMLElement; id: string };
+}

@@ -20,7 +20,7 @@ import {
   InlineContentSchema,
   StyleSchema,
 } from "../../schema/index.js";
-import { getDraggableBlockFromElement } from "../getDraggableBlockFromElement.js";
+import { getDraggableBlockFromElement, handleCustomDragHandleCase } from "../getDraggableBlockFromElement.js";
 import { dragStart, unsetDragImage } from "./dragging.js";
 
 export type SideMenuState<
@@ -44,6 +44,14 @@ function getBlockFromCoords(
 
   for (const element of elements) {
     if (!view.dom.contains(element)) {
+      // Insert our custom check before the dom filtering because we mount custom
+      // drag handles outside of the editor dom and they would not be picked up by
+      // elementsFromPoint otherwise
+      const customDragHandleResult = handleCustomDragHandleCase(element);
+      if (customDragHandleResult) {
+        return customDragHandleResult;
+      }
+
       // probably a ui overlay like formatting toolbar etc
       continue;
     }
