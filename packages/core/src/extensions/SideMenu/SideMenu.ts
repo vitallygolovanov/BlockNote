@@ -34,6 +34,12 @@ export type SideMenuState<
 
 const DISTANCE_TO_CONSIDER_EDITOR_BOUNDS = 250;
 const EMBEDDED_EDITOR_SELECTOR = "[data-embedded-editor]";
+const SIDE_MENU_HOVER_SELECTOR = [
+  ".bn-side-menu",
+  ".bn-drag-handle-menu",
+  '[data-blocknote-side-menu-drag-handle="true"]',
+  '[data-testid="blocknote-side-menu-drag-handle"]',
+].join(", ");
 
 function getBlockFromCoords(
   view: EditorView,
@@ -144,6 +150,8 @@ export class SideMenuView<
 
   private mousePos: { x: number; y: number } | undefined;
 
+  private embedHoverTarget: EventTarget | null = null;
+
   private hoveredBlock: HTMLElement | undefined;
 
   public menuFrozen = false;
@@ -208,6 +216,71 @@ export class SideMenuView<
     );
   };
 
+  private getEmbeddedContainer = () => {
+    return (
+      (this.pmView.dom as HTMLElement | null)?.closest?.(
+        EMBEDDED_EDITOR_SELECTOR,
+      ) ?? null
+    );
+  };
+
+  private hideMenu = () => {
+    if (this.state?.show) {
+      this.state.show = false;
+      this.emitUpdate(this.state);
+    }
+  };
+
+  private isRelevantEmbedHoverTarget = (target: EventTarget | null) => {
+    if (!this.isBlackboardEmbedEditor() || this.menuFrozen) {
+      return true;
+    }
+
+    const embeddedContainer = this.getEmbeddedContainer();
+    if (!embeddedContainer) {
+      return true;
+    }
+
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
+    if (embeddedContainer.contains(target)) {
+      return true;
+    }
+
+    const sideMenuElement = target.closest(SIDE_MENU_HOVER_SELECTOR);
+    if (!sideMenuElement) {
+      return false;
+    }
+
+    return embeddedContainer.contains(sideMenuElement);
+  };
+
+  private isCurrentEmbedHoverRelevant = () => {
+    if (!this.isBlackboardEmbedEditor() || this.menuFrozen) {
+      return true;
+    }
+
+    if (this.embedHoverTarget) {
+      return this.isRelevantEmbedHoverTarget(this.embedHoverTarget);
+    }
+
+    if (!this.mousePos) {
+      return false;
+    }
+
+    const root = this.pmView.root as Document | ShadowRoot;
+
+    if (!("elementFromPoint" in root)) {
+      return false;
+    }
+
+    return this.isRelevantEmbedHoverTarget(
+      root.elementFromPoint(this.mousePos.x, this.mousePos.y),
+    );
+  };
+
   private getDistanceThreshold = () => {
     return this.isBlackboardEmbedEditor() ? 0 : DISTANCE_TO_CONSIDER_EDITOR_BOUNDS;
   };
@@ -250,6 +323,11 @@ export class SideMenuView<
       return;
     }
 
+    if (!this.isCurrentEmbedHoverRelevant()) {
+      this.hideMenu();
+      return;
+    }
+
     const closestEditor = this.findClosestEditorElement({
       clientX: this.mousePos.x,
       clientY: this.mousePos.y,
@@ -259,10 +337,7 @@ export class SideMenuView<
       closestEditor?.element !== this.pmView.dom ||
       closestEditor.distance > this.getDistanceThreshold()
     ) {
-      if (this.state?.show) {
-        this.state.show = false;
-        this.updateState(this.state);
-      }
+      this.hideMenu();
       return;
     }
 
@@ -270,10 +345,7 @@ export class SideMenuView<
 
     // Closes the menu if the mouse cursor is beyond the editor vertically.
     if (!block || !this.editor.isEditable) {
-      if (this.state?.show) {
-        this.state.show = false;
-        this.updateState(this.state);
-      }
+      this.hideMenu();
 
       return;
     }
@@ -663,6 +735,13 @@ export class SideMenuView<
       return;
     }
 
+    this.embedHoverTarget = event.target;
+
+    if (!this.isRelevantEmbedHoverTarget(event.target)) {
+      this.hideMenu();
+      return;
+    }
+
     this.mousePos = { x: event.clientX, y: event.clientY };
 
     // We want the full area of the editor to check if the cursor is hovering
@@ -685,10 +764,7 @@ export class SideMenuView<
       // Element is outside this editor and its portaled UI
       !this.editor.isWithinEditor(event.target as HTMLElement)
     ) {
-      if (this.state?.show) {
-        this.state.show = false;
-        this.emitUpdate(this.state);
-      }
+      this.hideMenu();
 
       return;
     }
