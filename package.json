@@ -46,6 +46,7 @@
     "dev": "nx run @blocknote/example-editor:dev",
     "dev:docs": "nx run docs:dev",
     "build": "nx run-many --target=build",
+    "prepare": "pnpm --filter @blocknote/core exec vite build && pnpm --filter @blocknote/react exec vite build && pnpm --filter @blocknote/mantine exec vite build",
     "build:clean": "pnpm run clean && pnpm run gen && pnpm run clean && pnpm run build",
     "build:site": "nx run-many --target=build:site",
     "clean": "nx run-many --target=clean",

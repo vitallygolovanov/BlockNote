@@ -58,7 +58,7 @@ describe("SideMenu embed hover gate", () => {
       clientX: 120,
       clientY: 80,
       target: outsideTarget,
-    } as MouseEvent);
+    } as unknown as MouseEvent);
 
     expect(editorBoundsSpy).not.toHaveBeenCalled();
     expect(sideMenuView.state.show).toBe(false);
