@@ -213,7 +213,10 @@ export const GenericPopover = (
     style: {
       display: "flex",
       ...props.elementProps?.style,
-      zIndex: `calc(var(--bn-ui-base-z-index, 0) + ${props.elementProps?.style?.zIndex || 0})`,
+      // Fork delta (8863a6d1): `absoluteZIndex` escape hatch for Blackboard embeds.
+      zIndex:
+        props.absoluteZIndex ??
+        `calc(var(--bn-ui-base-z-index, 0) + ${props.elementProps?.style?.zIndex || 0})`,
       ...floatingStyles,
       ...styles,
     },
