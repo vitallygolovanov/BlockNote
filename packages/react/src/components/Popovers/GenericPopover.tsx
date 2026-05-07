@@ -8,6 +8,7 @@ import {
   autoUpdate,
   useHover,
 } from "@floating-ui/react";
+import { createPortal } from "react-dom";
 import { HTMLAttributes, ReactNode, useEffect, useRef } from "react";
 
 import { FloatingUIOptions } from "./FloatingUIOptions.js";
@@ -150,11 +151,27 @@ export const GenericPopover = (
     style: {
       display: "flex",
       ...props.elementProps?.style,
-      zIndex: `calc(var(--bn-ui-base-z-index) + ${props.elementProps?.style?.zIndex || 0})`,
+      zIndex:
+        props.absoluteZIndex ??
+        `calc(var(--bn-ui-base-z-index) + ${props.elementProps?.style?.zIndex || 0})`,
       ...floatingStyles,
       ...styles,
     },
     ...getFloatingProps(),
+  };
+
+  const renderPopover = (children: ReactNode) => {
+    const node = (
+      <div ref={mergedRefs} {...mergedProps}>
+        {children}
+      </div>
+    );
+
+    if (!props.portal || typeof document === "undefined") {
+      return node;
+    }
+
+    return createPortal(node, document.body);
   };
 
   if (status === "close") {
@@ -166,18 +183,20 @@ export const GenericPopover = (
     // this isn't a huge deal, as we only pass child components if the popover
     // should be open. So without this fix, the popover just won't transition
     // out and will instead appear to hide instantly.
-    return (
+    const node = (
       <div
         ref={mergedRefs}
         {...mergedProps}
         dangerouslySetInnerHTML={{ __html: innerHTML.current }}
       />
     );
+
+    if (!props.portal || typeof document === "undefined") {
+      return node;
+    }
+
+    return createPortal(node, document.body);
   }
 
-  return (
-    <div ref={mergedRefs} {...mergedProps}>
-      {props.children}
-    </div>
-  );
+  return renderPopover(props.children);
 };

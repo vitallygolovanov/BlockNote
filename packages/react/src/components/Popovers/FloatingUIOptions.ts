@@ -13,5 +13,7 @@ export type FloatingUIOptions = {
   useTransitionStatusProps?: UseTransitionStatusProps;
   useDismissProps?: UseDismissProps;
   useHoverProps?: UseHoverProps;
+  portal?: boolean;
+  absoluteZIndex?: number | string;
   elementProps?: HTMLAttributes<HTMLDivElement>;
 };
