@@ -7,7 +7,7 @@ import {
   StyleSchema,
 } from "@blocknote/core";
 import { FormattingToolbarExtension } from "@blocknote/core/extensions";
-import { flip, offset, shift } from "@floating-ui/react";
+import { flip, offset, shift, size } from "@floating-ui/react";
 import { FC, useMemo } from "react";
 
 import { useBlockNoteEditor } from "../../hooks/useBlockNoteEditor.js";
@@ -78,30 +78,68 @@ export const FormattingToolbarController = (props: {
   });
 
   const floatingUIOptions = useMemo<FloatingUIOptions>(
-    () => ({
-      ...props.floatingUIOptions,
-      useFloatingOptions: {
-        open: show,
-        // Needed as hooks like `useDismiss` call `onOpenChange` to change the
-        // open state.
-        onOpenChange: (open, _event, reason) => {
-          formattingToolbar.store.setState(open);
+    () => {
+      const boundarySelector = props.floatingUIOptions?.floatingBoundarySelector;
+      const resolveBoundary = (floating: Element) => boundarySelector
+        ? floating.closest(boundarySelector) ?? undefined
+        : undefined;
+      const boundaryOptions = boundarySelector
+        ? (state: { elements: { floating: Element } }) => ({
+            boundary: resolveBoundary(state.elements.floating),
+            padding: 0,
+          })
+        : undefined;
+      const boundaryWidthMiddleware = props.floatingUIOptions?.constrainFloatingWidthToBoundary
+        ? [
+            size((state) => ({
+              boundary: resolveBoundary(state.elements.floating),
+              padding: 0,
+              apply({ elements, x }) {
+                const boundary = resolveBoundary(elements.floating);
+                if (!(boundary instanceof HTMLElement)) {
+                  return;
+                }
 
-          if (reason === "escape-key") {
-            editor.focus();
-          }
+                const floatingLeftWithinBoundary = Math.max(0, x);
+                const maxWidth = boundary.clientWidth - floatingLeftWithinBoundary;
+
+                elements.floating.style.maxWidth = `${Math.max(0, maxWidth)}px`;
+                elements.floating.style.overflowX = "auto";
+              },
+            })),
+          ]
+        : [];
+
+      return {
+        ...props.floatingUIOptions,
+        useFloatingOptions: {
+          open: show,
+          // Needed as hooks like `useDismiss` call `onOpenChange` to change the
+          // open state.
+          onOpenChange: (open, _event, reason) => {
+            formattingToolbar.store.setState(open);
+
+            if (reason === "escape-key") {
+              editor.focus();
+            }
+          },
+          placement,
+          middleware: [
+            offset(10),
+            ...boundaryWidthMiddleware,
+            boundaryOptions ? shift(boundaryOptions) : shift(),
+            boundaryOptions ? flip(boundaryOptions) : flip(),
+          ],
+          ...props.floatingUIOptions?.useFloatingOptions,
         },
-        placement,
-        middleware: [offset(10), shift(), flip()],
-        ...props.floatingUIOptions?.useFloatingOptions,
-      },
-      elementProps: {
-        style: {
-          zIndex: 40,
+        elementProps: {
+          style: {
+            zIndex: 40,
+          },
+          ...props.floatingUIOptions?.elementProps,
         },
-        ...props.floatingUIOptions?.elementProps,
-      },
-    }),
+      };
+    },
     [show, placement, props.floatingUIOptions, formattingToolbar.store, editor],
   );
 

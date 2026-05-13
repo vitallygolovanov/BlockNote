@@ -15,5 +15,7 @@ export type FloatingUIOptions = {
   useHoverProps?: UseHoverProps;
   portal?: boolean;
   absoluteZIndex?: number | string;
+  floatingBoundarySelector?: string;
+  constrainFloatingWidthToBoundary?: boolean;
   elementProps?: HTMLAttributes<HTMLDivElement>;
 };
