@@ -19,6 +19,12 @@ import { MultipleNodeSelection } from "./MultipleNodeSelection.js";
 
 let dragImageElement: Element | undefined;
 
+type XmpDnDDebugGlobal = typeof globalThis & {
+  __xmpDnDDebugPendingSource?: string;
+  __xmpDnDDebugActiveSource?: string;
+  __xmpDnDDebugActiveSeq?: number;
+};
+
 export type SideMenuState<
   BSchema extends BlockSchema,
   I extends InlineContentSchema,
@@ -213,5 +219,19 @@ export function dragStart<
     e.dataTransfer.setData("text/plain", plainText);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setDragImage(dragImageElement!, 0, 0);
+
+    try {
+      const debugGlobal = globalThis as XmpDnDDebugGlobal;
+      const source = debugGlobal.__xmpDnDDebugPendingSource || "side-menu";
+      const seq = (debugGlobal.__xmpDnDDebugActiveSeq || 0) + 1;
+      debugGlobal.__xmpDnDDebugPendingSource = undefined;
+      debugGlobal.__xmpDnDDebugActiveSource = source;
+      debugGlobal.__xmpDnDDebugActiveSeq = seq;
+      console.log(
+        `[XmpDnDDebug] sourceStart seq=${seq} source=${source} blockType=${block.type} blockId=${block.id} effectAllowed=${e.dataTransfer.effectAllowed || ""} types=${Array.from(e.dataTransfer.types || []).join(",")} bnHtmlLen=${clipboardHTML.length} textHtmlLen=${externalHTML.length} textPlainLen=${plainText.length}`,
+      );
+    } catch {
+      // no-op
+    }
   }
 }
