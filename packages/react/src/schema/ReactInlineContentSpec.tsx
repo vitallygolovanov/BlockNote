@@ -30,6 +30,21 @@ import { FC, JSX } from "react";
 import { renderToDOMSpec } from "./@util/ReactRenderUtil.js";
 // this file is mostly analogoues to `customBlocks.ts`, but for React blocks
 
+function attachStyledInlineContentRef(
+  ref: (element: HTMLElement | null) => void,
+  element: HTMLElement | null,
+) {
+  ref(element);
+  if (!element) {
+    return;
+  }
+
+  element.dataset.editable = "";
+  // Tiptap's React node view integration expects this attribute on the
+  // contentRef target (see BlockNote PR #1954 / issue #1844).
+  element.dataset.nodeViewContent = "";
+}
+
 export type ReactCustomInlineContentRenderProps<
   T extends CustomInlineContentConfig,
   S extends StyleSchema,
@@ -156,10 +171,7 @@ export function createReactInlineContentSpec<
         (ref) => (
           <Content
             contentRef={(element) => {
-              ref(element);
-              if (element) {
-                element.dataset.editable = "";
-              }
+              attachStyledInlineContentRef(ref, element);
             }}
             inlineContent={ic}
             updateInlineContent={() => {
@@ -199,10 +211,7 @@ export function createReactInlineContentSpec<
               >
                 <Content
                   contentRef={(element) => {
-                    ref(element);
-                    if (element) {
-                      element.dataset.editable = "";
-                    }
+                    attachStyledInlineContentRef(ref, element);
                   }}
                   editor={editor}
                   inlineContent={
@@ -257,10 +266,7 @@ export function createReactInlineContentSpec<
             >
               <Content
                 contentRef={(element) => {
-                  ref(element);
-                  if (element) {
-                    element.dataset.editable = "";
-                  }
+                  attachStyledInlineContentRef(ref, element);
                 }}
                 editor={editor}
                 inlineContent={inlineContent}
@@ -284,10 +290,7 @@ export function createReactInlineContentSpec<
             >
               <Content
                 contentRef={(element) => {
-                  ref(element);
-                  if (element) {
-                    element.dataset.editable = "";
-                  }
+                  attachStyledInlineContentRef(ref, element);
                 }}
                 editor={editor}
                 inlineContent={inlineContent}
