@@ -334,4 +334,6 @@ inline styles, it is added to the base z-index. */
 /* Emoji Picker styling */
 .bn-root em-emoji-picker {
   max-height: 100%;
+  /* Fork delta (d8f1a073): keep emoji picker above Blackboard embed layers. */
+  z-index: 11000;
 }
