@@ -33,7 +33,7 @@ export type SideMenuState<
 };
 
 const DISTANCE_TO_CONSIDER_EDITOR_BOUNDS = 250;
-const EMBEDDED_EDITOR_SELECTOR = "[data-embedded-editor]";
+const EMBEDDED_EDITOR_SELECTOR = '[data-editor-mode="embed"]';
 const SIDE_MENU_HOVER_SELECTOR = [
   ".bn-side-menu",
   ".bn-drag-handle-menu",
@@ -370,13 +370,13 @@ export class SideMenuView<
         referencePos: new DOMRect(
           column
             ? // We take the first child as column elements have some default
-              // padding. This is a little weird since this child element will
-              // be the first block, but since it's always non-nested and we
-              // only take the x coordinate, it's ok.
-              column.firstElementChild!.getBoundingClientRect().x
+            // padding. This is a little weird since this child element will
+            // be the first block, but since it's always non-nested and we
+            // only take the x coordinate, it's ok.
+            column.firstElementChild!.getBoundingClientRect().x
             : (
-                this.pmView.dom.firstChild as HTMLElement
-              ).getBoundingClientRect().x,
+              this.pmView.dom.firstChild as HTMLElement
+            ).getBoundingClientRect().x,
           blockContentBoundingBox.y,
           blockContentBoundingBox.width,
           blockContentBoundingBox.height,
@@ -477,6 +477,28 @@ export class SideMenuView<
       if (distance < minDistance) {
         minDistance = distance;
         closestEditor = editor;
+      } else if (distance === minDistance && distance === 0) {
+        // Tie-breaker: If both editors report a distance of 0 (e.g. they share a container),
+        // determine which actual editor element contains the coordinates.
+        const currentClosestActualRect = closestEditor.getBoundingClientRect();
+        const isInsideCurrent =
+          coords.clientX >= currentClosestActualRect.left &&
+          coords.clientX <= currentClosestActualRect.right &&
+          coords.clientY >= currentClosestActualRect.top &&
+          coords.clientY <= currentClosestActualRect.bottom;
+
+        if (!isInsideCurrent) {
+          const newActualRect = editor.getBoundingClientRect();
+          const isInsideNew =
+            coords.clientX >= newActualRect.left &&
+            coords.clientX <= newActualRect.right &&
+            coords.clientY >= newActualRect.top &&
+            coords.clientY <= newActualRect.bottom;
+
+          if (isInsideNew) {
+            closestEditor = editor;
+          }
+        }
       }
     });
 
