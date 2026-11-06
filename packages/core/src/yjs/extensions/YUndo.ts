@@ -116,15 +116,13 @@ const createRemountSafeYUndoPlugin = ({
           );
         }
       };
-      const onStackItemPopped = ({ stackItem }: { stackItem: any }) => {
-        const binding = ystate.binding;
-        if (binding) {
-          binding.beforeTransactionSelection =
-            stackItem.meta.get(binding) || binding.beforeTransactionSelection;
-        }
-      };
+      // [fork] No `stack-item-popped` handler. Upstream copies the stored selection into
+      // `binding.beforeTransactionSelection` there so the sync plugin restores it while applying the
+      // undo. yjs 13.6 emits `stack-item-popped` only AFTER that transaction, so the value always
+      // arrives too late, survives `afterAllTransactions`, and is restored by the NEXT remote change
+      // instead: the caret jumps to an old undo position. The stored selection stays readable as
+      // `stackItem.meta.get(binding)`; restoring it after undo/redo is left to the host editor.
       undoManager.on("stack-item-added", onStackItemAdded);
-      undoManager.on("stack-item-popped", onStackItemPopped);
       return {
         destroy: () => {
           // Detach only the per-view listeners. Deliberately NOT
@@ -133,7 +131,6 @@ const createRemountSafeYUndoPlugin = ({
           // would leave a dead manager bound to the remounted view (the broken
           // collaborative-undo bug). The manager is GC'd with the editor/Y.Doc.
           undoManager.off("stack-item-added", onStackItemAdded);
-          undoManager.off("stack-item-popped", onStackItemPopped);
         },
       };
     },
