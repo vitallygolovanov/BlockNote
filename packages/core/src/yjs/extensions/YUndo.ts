@@ -36,11 +36,10 @@ type YUndoPluginState = {
  * (see `Editor.unmount()` / `Editor.createView()` — the new view is built from
  * the retained state and `EditorState.reconfigure` keeps existing plugin state).
  *
- * The view is remounted not only by React StrictMode's double-mount but on every
- * `isEditable` toggle: BlockNoteView's `mount` callback lists `editable` in its
- * deps and re-runs `editor.unmount()` + `editor.mount()` to restore the tabIndex
- * attribute. In a collaborative app `editable` flips on every connection blip, so
- * a transient disconnect would silently kill undo.
+ * The view is remounted by React StrictMode's double-mount and whenever
+ * BlockNoteView's `mount` callback changes (a new `portalTarget`). It used to
+ * remount on every `isEditable` toggle too, which in a collaborative app meant
+ * every connection blip; the fork now applies `editable` in place.
  *
  * Concretely, with upstream's plugin: first view teardown -> `undoManager.destroy()`
  * -> the now-dead manager stays in the preserved plugin state -> the remounted
@@ -136,29 +135,32 @@ const createRemountSafeYUndoPlugin = ({
     },
   });
 
-export const YUndoExtension = createExtension(({ editor }: ExtensionOptions) => {
-  // The UndoManager now outlives the ProseMirror *view* (so undo survives view
-  // remounts — see createRemountSafeYUndoPlugin), which means it is no longer
-  // torn down on view destroy. It must instead be destroyed when the *editor* is
-  // destroyed, otherwise its Yjs observers linger on the Y.Doc. `mount()` runs on
-  // every (re)mount, so bind the editor's one-time "destroy" event once. tiptap
-  // emits "destroy" before tearing the view down, so the manager is still
-  // reachable via the captured reference when it fires.
-  let editorDestroyBound = false;
-  return {
-    key: "yUndo",
-    prosemirrorPlugins: [createRemountSafeYUndoPlugin()],
-    dependsOn: ["yCursor", "ySync"],
-    undoCommand: undoCommand,
-    redoCommand: redoCommand,
-    mount() {
-      if (!editorDestroyBound) {
-        editorDestroyBound = true;
-        const undoManager =
-          yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager ?? null;
-        editor._tiptapEditor.on("destroy", () => undoManager?.destroy());
-      }
-      return undefined;
-    },
-  } as const;
-});
+export const YUndoExtension = createExtension(
+  ({ editor }: ExtensionOptions) => {
+    // The UndoManager now outlives the ProseMirror *view* (so undo survives view
+    // remounts — see createRemountSafeYUndoPlugin), which means it is no longer
+    // torn down on view destroy. It must instead be destroyed when the *editor* is
+    // destroyed, otherwise its Yjs observers linger on the Y.Doc. `mount()` runs on
+    // every (re)mount, so bind the editor's one-time "destroy" event once. tiptap
+    // emits "destroy" before tearing the view down, so the manager is still
+    // reachable via the captured reference when it fires.
+    let editorDestroyBound = false;
+    return {
+      key: "yUndo",
+      prosemirrorPlugins: [createRemountSafeYUndoPlugin()],
+      dependsOn: ["yCursor", "ySync"],
+      undoCommand: undoCommand,
+      redoCommand: redoCommand,
+      mount() {
+        if (!editorDestroyBound) {
+          editorDestroyBound = true;
+          const undoManager =
+            yUndoPluginKey.getState(editor.prosemirrorState)?.undoManager ??
+            null;
+          editor._tiptapEditor.on("destroy", () => undoManager?.destroy());
+        }
+        return undefined;
+      },
+    } as const;
+  },
+);
