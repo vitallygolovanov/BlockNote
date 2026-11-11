@@ -7,6 +7,8 @@ import { assertEmpty } from "@blocknote/core";
 import { ComponentProps } from "@blocknote/react";
 import { createContext, forwardRef, useContext } from "react";
 
+import { useMenuPortalProps } from "../menuPortalTarget.js";
+
 const SubMenuContext = createContext<
   | {
       onMenuMouseOver: () => void;
@@ -19,6 +21,8 @@ export const Menu = (props: ComponentProps["Generic"]["Menu"]["Root"]) => {
   const { children, onOpenChange, position, sub, ...rest } = props;
 
   assertEmpty(rest);
+
+  const portal = useMenuPortalProps();
 
   if (sub) {
     return (
@@ -36,7 +40,7 @@ export const Menu = (props: ComponentProps["Generic"]["Menu"]["Root"]) => {
 
   return (
     <MantineMenu
-      withinPortal={false}
+      {...portal}
       middlewares={{ flip: true, shift: true, inline: false, size: true }}
       onChange={onOpenChange}
       position={position}

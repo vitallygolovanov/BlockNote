@@ -9,6 +9,8 @@ import { ComponentProps } from "@blocknote/react";
 import { forwardRef } from "react";
 import { HiChevronDown } from "react-icons/hi";
 
+import { useMenuPortalProps } from "../menuPortalTarget.js";
+
 // TODO: Turn into select?
 export const ToolbarSelect = forwardRef<
   HTMLDivElement,
@@ -18,6 +20,8 @@ export const ToolbarSelect = forwardRef<
 
   assertEmpty(rest);
 
+  const portal = useMenuPortalProps();
+
   const selectedItem = items.filter((p) => p.isSelected)[0];
 
   if (!selectedItem) {
@@ -26,7 +30,7 @@ export const ToolbarSelect = forwardRef<
 
   return (
     <MantineMenu
-      withinPortal={false}
+      {...portal}
       transitionProps={{
         exitDuration: 0,
       }}

@@ -8,6 +8,8 @@ import { assertEmpty } from "@blocknote/core";
 import { ComponentProps } from "@blocknote/react";
 import { forwardRef } from "react";
 
+import { useMenuPortalProps } from "../menuPortalTarget.js";
+
 export const Popover = (
   props: ComponentProps["Generic"]["Popover"]["Root"],
 ) => {
@@ -15,11 +17,15 @@ export const Popover = (
 
   assertEmpty(rest);
 
+  const contextPortal = useMenuPortalProps();
+  const portal = portalRoot
+    ? { withinPortal: true, portalProps: { target: portalRoot } }
+    : contextPortal;
+
   return (
     <MantinePopover
       middlewares={{ size: { padding: 20 } }}
-      withinPortal={!!portalRoot}
-      portalProps={portalRoot ? { target: portalRoot } : undefined}
+      {...portal}
       opened={open}
       onChange={onOpenChange}
       position={position}

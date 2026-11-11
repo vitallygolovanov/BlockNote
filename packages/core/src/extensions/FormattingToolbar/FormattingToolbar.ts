@@ -92,10 +92,17 @@ export const FormattingToolbarExtension = createExtension(({ editor }) => {
         { signal, capture: true },
       );
       // If the pointer gets cancelled, we don't want to be stuck in the `preventShowWhileMouseDown` state
+      // [fork] Upstream set the flag to `true` here. A touch gesture the browser takes over (a
+      // long-press selection, a scroll) ends in `pointercancel` with no `pointerup`, so the toolbar
+      // ignored every selection change until the next tap. Re-evaluate as `pointerup` does: the
+      // selection may already be made, with no further selection change coming.
       dom.addEventListener(
         "pointercancel",
         () => {
-          preventShowWhileMouseDown = true;
+          preventShowWhileMouseDown = false;
+          if (editor.isFocused()) {
+            store.setState(shouldShow());
+          }
         },
         { signal, capture: true },
       );
